@@ -1,4 +1,12 @@
-import { BarChart3, CalendarCheck2, Home, Settings, Target } from "lucide-react";
+import {
+  BarChart3,
+  CalendarCheck2,
+  CalendarDays,
+  Home,
+  Settings,
+  Target,
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 import type { ReactNode } from "react";
 
@@ -7,11 +15,12 @@ interface DashboardShellProps {
 }
 
 const navItems = [
-  { label: "Overview", icon: Home, active: true },
-  { label: "Tasks", icon: CalendarCheck2, active: false },
-  { label: "Goals", icon: Target, active: false },
-  { label: "Analytics", icon: BarChart3, active: false },
-  { label: "Settings", icon: Settings, active: false },
+  { label: "Overview", icon: Home, href: "/" },
+  { label: "Tasks", icon: CalendarCheck2, href: "/tasks" },
+  { label: "Monthly", icon: CalendarDays, href: "/monthly-tasks" },
+  { label: "Goals", icon: Target, href: "/goals" },
+  { label: "Analytics", icon: BarChart3, href: "/analytics" },
+  { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export function DashboardShell({ children }: DashboardShellProps) {
@@ -35,17 +44,19 @@ export function DashboardShell({ children }: DashboardShellProps) {
             const Icon = item.icon;
 
             return (
-              <button
+              <NavLink
                 key={item.label}
-                type="button"
-                className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition ${
-                  item.active
+                to={item.href}
+                className={({ isActive }) =>
+                  `flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition ${
+                    isActive
                     ? "bg-slate-950 text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                }`}>
+                  }`
+                }>
                 <Icon size={18} />
                 {item.label}
-              </button>
+              </NavLink>
             );
           })}
         </nav>
