@@ -1,9 +1,14 @@
 interface Props {
+  id: string;
   text?: string;
 }
 
-export function InputHelper({ text }: Props) {
+export function InputHelper({ id, text }: Props) {
   if (!text) return null;
 
-  return <p className="text-xs text-gray-500">{text}</p>;
+  return (
+    <p id={id} className="text-xs text-slate-500">
+      {text}
+    </p>
+  );
 }
