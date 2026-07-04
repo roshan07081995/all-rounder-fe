@@ -18,7 +18,7 @@ export const persistedReducer = persistReducer(
   {
     key: "root",
     storage: localStorageAdapter,
-    whitelist: [],
+    whitelist: ["auth"],
   },
   rootReducer
 );

@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
 
+import { DashboardShell } from "@/modules/dashboard/components";
+
 export function DashboardLayout() {
   return (
-    <div className="flex min-h-screen">
-      <main className="flex-1">
-        <Outlet />
-      </main>
-    </div>
+    <DashboardShell>
+      <Outlet />
+    </DashboardShell>
   );
 }
