@@ -3,36 +3,78 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useTasks } from "@/modules/tasks/hooks/use-tasks";
-import type {
-  Task,
-  TaskStatus,
-  UpdateTaskPayload,
-} from "@/modules/tasks/types/task.types";
+import type { Task } from "@/modules/tasks/types/task.types";
 
-import { useSubmitMonthlyTasks } from "../hooks/use-submit-monthly-tasks";
+import {
+  useMonthlyTaskCompletions,
+  useSubmitMonthlyTasks,
+} from "../hooks/use-submit-monthly-tasks";
+import type { SaveMonthlyTaskCompletionPayload } from "../types/monthly-task.types";
 import {
   getCurrentMonthDays,
   getMonthLabel,
-  getMonthTaskStats,
 } from "../utils/monthly-task.utils";
 
 export function MonthlyTaskBoard() {
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
   const [draftChanges, setDraftChanges] = useState<
-    Record<string, UpdateTaskPayload>
+    Record<string, SaveMonthlyTaskCompletionPayload>
   >({});
   const { data: tasks = [], isLoading, isError } = useTasks();
+  const year = visibleMonth.getFullYear();
+  const month = visibleMonth.getMonth() + 1;
+  const {
+    data: monthlyCompletions = [],
+    isLoading: isMonthlyCompletionsLoading,
+    isError: isMonthlyCompletionsError,
+  } = useMonthlyTaskCompletions(year, month);
   const submitMonthlyTasks = useSubmitMonthlyTasks();
 
   const monthDays = useMemo(
     () => getCurrentMonthDays(visibleMonth),
     [visibleMonth]
   );
-  const stats = useMemo(
-    () => getMonthTaskStats(tasks, visibleMonth),
-    [tasks, visibleMonth]
+  const savedCompletionMap = useMemo(
+    () =>
+      monthlyCompletions.reduce<Record<string, boolean>>(
+        (completionMap, completion) => {
+          completionMap[
+            `${completion.task_id}:${completion.completion_date}`
+          ] = completion.is_completed;
+
+          return completionMap;
+        },
+        {}
+      ),
+    [monthlyCompletions]
+  );
+  const draftCompletionMap = useMemo(
+    () =>
+      Object.values(draftChanges).reduce<Record<string, boolean>>(
+        (completionMap, completion) => {
+          completionMap[
+            `${completion.task_id}:${completion.completion_date}`
+          ] = completion.is_completed;
+
+          return completionMap;
+        },
+        {}
+      ),
+    [draftChanges]
   );
   const changeCount = Object.keys(draftChanges).length;
+  const completedCount = useMemo(() => {
+    const mergedCompletionMap = {
+      ...savedCompletionMap,
+      ...draftCompletionMap,
+    };
+
+    return Object.values(mergedCompletionMap).filter(Boolean).length;
+  }, [draftCompletionMap, savedCompletionMap]);
+  const totalCells = tasks.length * monthDays.length;
+  const completionRate =
+    totalCells === 0 ? 0 : Math.round((completedCount / totalCells) * 100);
+  const isTrackerLoading = isLoading || isMonthlyCompletionsLoading;
 
   const moveMonth = (direction: "previous" | "next") => {
     setDraftChanges({});
@@ -47,24 +89,22 @@ export function MonthlyTaskBoard() {
   };
 
   const handleToggleTask = (task: Task, dateKey: string, checked: boolean) => {
-    const nextStatus: TaskStatus = checked ? "COMPLETED" : "PENDING";
+    const completionKey = `${task.id}:${dateKey}`;
 
     setDraftChanges((currentDraft) => {
-      if (
-        nextStatus === task.status &&
-        (!checked || dateKey === task.due_date)
-      ) {
+      if (savedCompletionMap[completionKey] === checked) {
         const remainingDraft = { ...currentDraft };
-        delete remainingDraft[task.id];
+        delete remainingDraft[completionKey];
 
         return remainingDraft;
       }
 
       return {
         ...currentDraft,
-        [task.id]: {
-          status: nextStatus,
-          due_date: checked ? dateKey : task.due_date,
+        [completionKey]: {
+          task_id: task.id,
+          completion_date: dateKey,
+          is_completed: checked,
         },
       };
     });
@@ -73,7 +113,9 @@ export function MonthlyTaskBoard() {
   const handleSubmit = () => {
     submitMonthlyTasks.mutate(
       {
-        changes: draftChanges,
+        items: Object.values(draftChanges),
+        year,
+        month,
       },
       {
         onSuccess: () => {
@@ -84,32 +126,17 @@ export function MonthlyTaskBoard() {
   };
 
   const getCellStatus = (task: Task, dateKey: string) => {
-    const draft = draftChanges[task.id];
-    const selectedDate = draft?.due_date ?? task.due_date;
-    const selectedStatus = draft?.status ?? task.status;
+    const completionKey = `${task.id}:${dateKey}`;
 
-    return selectedDate === dateKey && selectedStatus === "COMPLETED";
+    return draftCompletionMap[completionKey] ?? savedCompletionMap[completionKey] ?? false;
   };
 
   const getTaskMonthCompletion = (task: Task) => {
-    const draft = draftChanges[task.id];
-    const selectedDate = draft?.due_date ?? task.due_date;
-    const selectedStatus = draft?.status ?? task.status;
+    const completedDays = monthDays.filter((day) =>
+      getCellStatus(task, day.dateKey)
+    ).length;
 
-    if (!selectedDate) {
-      return "Not scheduled";
-    }
-
-    const date = new Date(`${selectedDate}T00:00:00`);
-    const isVisibleMonth =
-      date.getMonth() === visibleMonth.getMonth() &&
-      date.getFullYear() === visibleMonth.getFullYear();
-
-    if (!isVisibleMonth) {
-      return "Outside month";
-    }
-
-    return selectedStatus === "COMPLETED" ? "Completed" : "Pending";
+    return `${completedDays}/${monthDays.length} days`;
   };
 
   return (
@@ -155,25 +182,27 @@ export function MonthlyTaskBoard() {
           <div className="rounded-lg bg-slate-50 p-4">
             <p className="text-sm font-medium text-slate-500">Month tasks</p>
             <p className="mt-2 text-2xl font-bold text-slate-950">
-              {stats.total}
+              {tasks.length}
             </p>
           </div>
           <div className="rounded-lg bg-emerald-50 p-4">
-            <p className="text-sm font-medium text-emerald-700">Completed</p>
+            <p className="text-sm font-medium text-emerald-700">
+              Completed checks
+            </p>
             <p className="mt-2 text-2xl font-bold text-emerald-800">
-              {stats.completed}
+              {completedCount}
             </p>
           </div>
           <div className="rounded-lg bg-amber-50 p-4">
-            <p className="text-sm font-medium text-amber-700">Pending</p>
+            <p className="text-sm font-medium text-amber-700">Open checks</p>
             <p className="mt-2 text-2xl font-bold text-amber-800">
-              {stats.pending}
+              {Math.max(totalCells - completedCount, 0)}
             </p>
           </div>
           <div className="rounded-lg bg-blue-50 p-4">
             <p className="text-sm font-medium text-blue-700">Completion</p>
             <p className="mt-2 text-2xl font-bold text-blue-800">
-              {stats.completionRate}%
+              {completionRate}%
             </p>
           </div>
         </div>
@@ -189,6 +218,13 @@ export function MonthlyTaskBoard() {
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
           Could not load tasks. Check that you are logged in and the backend is
           running.
+        </div>
+      )}
+
+      {isMonthlyCompletionsError && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
+          Could not load monthly completion records. Check that the new backend
+          migration is applied and the API is running.
         </div>
       )}
 
@@ -233,7 +269,7 @@ export function MonthlyTaskBoard() {
             </thead>
 
             <tbody>
-              {isLoading &&
+              {isTrackerLoading &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={index}>
                     <td className="sticky left-0 z-10 border-b border-r border-slate-100 bg-white p-4">
@@ -252,7 +288,7 @@ export function MonthlyTaskBoard() {
                   </tr>
                 ))}
 
-              {!isLoading && tasks.length === 0 && (
+              {!isTrackerLoading && tasks.length === 0 && (
                 <tr>
                   <td
                     colSpan={monthDays.length + 2}
@@ -267,7 +303,7 @@ export function MonthlyTaskBoard() {
                 </tr>
               )}
 
-              {!isLoading &&
+              {!isTrackerLoading &&
                 tasks.map((task) => (
                   <tr key={task.id} className="group">
                     <td className="sticky left-0 z-10 w-72 border-b border-r border-slate-100 bg-white px-4 py-3 group-hover:bg-slate-50">
@@ -296,11 +332,13 @@ export function MonthlyTaskBoard() {
                     <td className="sticky left-72 z-10 w-32 border-b border-r border-slate-100 bg-white px-3 py-3 group-hover:bg-slate-50">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          getTaskMonthCompletion(task) === "Completed"
+                          getTaskMonthCompletion(task).startsWith("0/")
+                            ? "bg-slate-100 text-slate-500"
+                            : getTaskMonthCompletion(task).startsWith(
+                                  `${monthDays.length}/`
+                                )
                             ? "bg-emerald-50 text-emerald-700"
-                            : getTaskMonthCompletion(task) === "Pending"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-slate-100 text-slate-500"
+                            : "bg-amber-50 text-amber-700"
                         }`}>
                         {getTaskMonthCompletion(task)}
                       </span>
