@@ -7,6 +7,7 @@ import { AuthLayout } from "@/app/layouts/auth-layout";
 import { DashboardLayout } from "@/app/layouts/dashboard-layout";
 
 import { authRoutes } from "@/modules/auth/routes";
+import { dailyTaskStatsRoutes } from "@/modules/daily-task-stats/routes";
 import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { monthlyTaskRoutes } from "@/modules/monthly-tasks/routes";
 import { taskRoutes } from "@/modules/tasks/routes";
@@ -31,7 +32,12 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <DashboardLayout />,
-        children: [...dashboardRoutes, ...taskRoutes, ...monthlyTaskRoutes],
+        children: [
+          ...dashboardRoutes,
+          ...taskRoutes,
+          ...monthlyTaskRoutes,
+          ...dailyTaskStatsRoutes,
+        ],
       },
     ],
   },

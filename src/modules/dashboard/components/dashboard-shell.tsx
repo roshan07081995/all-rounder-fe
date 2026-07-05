@@ -3,10 +3,13 @@ import {
   CalendarCheck2,
   CalendarDays,
   Home,
+  LineChart,
   Settings,
   Target,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+
+import { LogoutButton } from "@/modules/auth/components";
 
 import type { ReactNode } from "react";
 
@@ -18,6 +21,7 @@ const navItems = [
   { label: "Overview", icon: Home, href: "/" },
   { label: "Tasks", icon: CalendarCheck2, href: "/tasks" },
   { label: "Monthly", icon: CalendarDays, href: "/monthly-tasks" },
+  { label: "Stats", icon: LineChart, href: "/daily-task-stats" },
   { label: "Goals", icon: Target, href: "/goals" },
   { label: "Analytics", icon: BarChart3, href: "/analytics" },
   { label: "Settings", icon: Settings, href: "/settings" },
@@ -61,17 +65,21 @@ export function DashboardShell({ children }: DashboardShellProps) {
           })}
         </nav>
 
-        <div className="absolute bottom-6 left-5 right-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-950">Today score</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-3xl font-bold">84</span>
-            <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
-              On track
-            </span>
+        <div className="absolute bottom-6 left-5 right-5 space-y-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Today score</p>
+            <div className="mt-3 flex items-end justify-between">
+              <span className="text-3xl font-bold">84</span>
+              <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
+                On track
+              </span>
+            </div>
+            <div className="mt-4 h-2 rounded-full bg-slate-200">
+              <div className="h-2 w-[84%] rounded-full bg-blue-600" />
+            </div>
           </div>
-          <div className="mt-4 h-2 rounded-full bg-slate-200">
-            <div className="h-2 w-[84%] rounded-full bg-blue-600" />
-          </div>
+
+          <LogoutButton />
         </div>
       </aside>
 
