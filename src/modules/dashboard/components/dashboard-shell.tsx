@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   CalendarCheck2,
   CalendarDays,
   Home,
@@ -20,6 +21,7 @@ interface DashboardShellProps {
 const navItems = [
   { label: "Overview", icon: Home, href: "/" },
   { label: "Tasks", icon: CalendarCheck2, href: "/tasks" },
+  { label: "Study", icon: BookOpen, href: "/study-topics" },
   { label: "Monthly", icon: CalendarDays, href: "/monthly-tasks" },
   { label: "Stats", icon: LineChart, href: "/daily-task-stats" },
   { label: "Goals", icon: Target, href: "/goals" },

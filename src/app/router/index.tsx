@@ -10,6 +10,7 @@ import { authRoutes } from "@/modules/auth/routes";
 import { dailyTaskStatsRoutes } from "@/modules/daily-task-stats/routes";
 import { dashboardRoutes } from "@/modules/dashboard/routes";
 import { monthlyTaskRoutes } from "@/modules/monthly-tasks/routes";
+import { studyTopicRoutes } from "@/modules/study-topics/routes";
 import { taskRoutes } from "@/modules/tasks/routes";
 
 import { NotFoundPage } from "./not-found";
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
         children: [
           ...dashboardRoutes,
           ...taskRoutes,
+          ...studyTopicRoutes,
           ...monthlyTaskRoutes,
           ...dailyTaskStatsRoutes,
         ],
